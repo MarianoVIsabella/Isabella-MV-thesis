@@ -105,7 +105,6 @@ def extract_chunk_span(token):
     return " ".join([t.text for t in sorted_chunk_tokens]).strip()
 
 #funzione per semplificare le parole di un chunk ed evitare i termini non validi all'interno di ACE
-#funzione per semplificare le parole di un chunk ed evitare i termini non validi all'interno di ACE
 def simplify_chunk(text, is_subject_or_object=False):
     doc = nlp(text)
     simplified_parts = []
