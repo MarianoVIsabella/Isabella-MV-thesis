@@ -120,7 +120,7 @@ def simplify_chunk(text, is_subject_or_object=False):
         if token.pos_ in {"NOUN", "PROPN"}:
             if token.dep_ not in {"cc", "conj"} and not (token.head and token.head.dep_ == "prep"):
                 nominal_heads.append(token)
-            elif token.dep_ == "conj" and token.head and token.head.head and token.head.head.pos_ in {"NOUN", "PROPN"}: # Adjusted for nested conj
+            elif token.dep_ == "conj" and token.head and token.head.head and token.head.head.pos_ in {"NOUN", "PROPN"}:
                 nominal_heads.append(token)
     
     if not is_subject_or_object or not nominal_heads:
