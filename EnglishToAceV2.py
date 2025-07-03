@@ -46,7 +46,7 @@ def simplify_word(word):
         return irregular_plural_to_singular[word.lower()]
     return get_hypernym(word)
 
- #funzione che converte una frase passiva in attiva con la struttura SVO (Soggetto, Verbo, Oggetto) restituendo i singoli token e l'esito della conversione
+#funzione che converte una frase passiva in attiva con la struttura SVO (Soggetto, Verbo, Oggetto) restituendo i singoli token e l'esito della conversione
 def convert_passive_to_active_svo(doc):
     for token in doc:
         if token.dep_ == "nsubjpass" and token.head.dep_ in {"auxpass", "ROOT"}:
@@ -68,12 +68,12 @@ def convert_passive_to_active_svo(doc):
             
             # se non c'è un agente, il soggetto della frase attiva è "Someone"
             if not subj_active_token:
-                return "Someone", verb_passive.lemma_, extract_chunk_span(obj_active_token), True
+                return nlp("Someone")[0], verb_passive, extract_chunk_span(obj_active_token), True
             else:
-                return extract_chunk_span(subj_active_token), verb_passive.lemma_, extract_chunk_span(obj_active_token), True
+                return subj_active_token, verb_passive, extract_chunk_span(obj_active_token), True
     return None, None, None, False
 
- # funzione ricorsiva per aggiungere i figli ai token
+# funzione ricorsiva per aggiungere i figli ai token
 def add_children_and_conj(t, chunk_tokens):
     for child in t.children:
         # include i modificatori standard e preposizioni (con sottotree)
@@ -151,12 +151,11 @@ def simplify_chunk(text, is_subject_or_object=False):
             if t.pos_ == "NUM" or t.dep_ == "nummod": 
                 simplified_parts.append(current_word)
             elif t.text.lower() in quantifiers_to_standardize or t.text.lower() in {"a", "an", "the"}:
-                # Logica modificata: se è "the" e non è una nuova introduzione, mantienilo
                 if t.text.lower() == "the" and not is_new_introduction:
                     simplified_parts.append("the")
                 elif is_new_introduction:
                     simplified_parts.append("a")
-                else: # Questo gestisce i casi in cui a/an sono presenti con un'entità già introdotta, forzando 'the'
+                else: 
                     simplified_parts.append("the")
             else: 
                 simplified_parts.append(current_word) 
@@ -200,7 +199,7 @@ def extract_svo(doc):
             adverbial_modifiers.append(token)
         elif token.dep_ == "neg" and negation_modifier is None:
             negation_modifier = token
-    #controlli fatti alla fine del ciclo per gestire casi particolari (frasi con il verbo essere in cui il verbo è appunto "to be" e l'oggetto è in realtà un aggettivo)        
+    #controlli fatti alla fine del ciclo per gestire casi particolari (frasi con il verbo essere in cui il verbo è appunto "to be" e l'oggetto è in realtà un aggettivo) 		
     if verb is None and be_verb:
         verb = be_verb
     if obj is None and adj:
@@ -208,9 +207,60 @@ def extract_svo(doc):
 
     return subject, verb, obj, adverbial_modifiers, negation_modifier, aux_verb
 
+#funzione che si assicura i verbi abbiano sempre la coniugazione corretta
+def conjugate_verb(verb_lemma, subject_token):
+    
+    is_subject_plural_for_conjugation = False
+    #l'idea è verificare se il sogetto nella frase finale è singolare o plurale, e in base al soggetto coniugare.
+    
+    if subject_token.lemma_.lower() in ["we", "you", "they"]:
+        is_subject_plural_for_conjugation = True
+    
+    elif subject_token.lemma_.lower() == "i":
+        is_subject_plural_for_conjugation = True
+   
+    elif subject_token.lemma_.lower() == "someone":
+        is_subject_plural_for_conjugation = False
+    
+    subj_chunk_doc = nlp(extract_chunk_span(subject_token))
+    for t in subj_chunk_doc:
+        if t.dep_ == "nummod" and t.pos_ == "NUM" and t.lemma_ not in ["one", "a", "an"]:
+            is_subject_plural_for_conjugation = True
+            break
+    
+    if not is_subject_plural_for_conjugation and subject_token.lemma_.lower() not in ["we", "you", "they", "i", "someone"]:
+        is_subject_plural_for_conjugation = False
+    
+    #gestico il verbo be
+    if verb_lemma.lower() == "be":
+        if is_subject_plural_for_conjugation:
+            return "are"
+        elif subject_token.lemma_.lower() == "i": 
+            return "am"
+        else:
+            return "is"
+    #gestisco il verbo have
+    elif verb_lemma.lower() == "have":
+        if is_subject_plural_for_conjugation:
+            return "have"
+        else:
+            return "has"
+    
+    #se singolare, applico la coniugazione
+    if is_subject_plural_for_conjugation:
+        return verb_lemma 
+    else:
+        if verb_lemma.endswith(('s', 'sh', 'ch', 'x', 'z', 'o')):
+            return verb_lemma + 'es'
+        elif verb_lemma.endswith('y') and len(verb_lemma) > 1 and verb_lemma[-2] not in "aeiou":
+            return verb_lemma[:-1] + 'ies'
+        else:
+            return verb_lemma + 's'
+
 #funzione che semplifica le frasi singole in input
 def simplify_sentence(text): 
-    
+    global introduced_entities_lemmas 
+
     original_doc = nlp(text) 
     simplified_sentences = []
     clauses = []
@@ -264,10 +314,12 @@ def simplify_sentence(text):
             
         clause_doc = nlp(clause_text)
 
-        active_subj_str, active_verb_str, active_obj_str, is_passive_converted = convert_passive_to_active_svo(clause_doc)
+        active_subj_token, active_verb_token, active_obj_str, is_passive_converted = convert_passive_to_active_svo(clause_doc)
     
         if is_passive_converted:
-            simplified_sentences.append(f"{simplify_chunk(active_subj_str, is_subject_or_object=True).capitalize()} {simplify_word(active_verb_str)} {simplify_chunk(active_obj_str, is_subject_or_object=True)}.")
+            simplified_subj = simplify_chunk(extract_chunk_span(active_subj_token), is_subject_or_object=True).capitalize()
+            conjugated_verb = conjugate_verb(active_verb_token.lemma_, active_subj_token)
+            simplified_sentences.append(f"{simplified_subj} {conjugated_verb} {simplify_chunk(active_obj_str, is_subject_or_object=True)}.")
             continue
 
         relcl_info = []
@@ -297,9 +349,9 @@ def simplify_sentence(text):
             
             simplified_rel_subject = simplify_chunk(rel_subject_text, is_subject_or_object=True)
             simplified_rel_object = simplify_chunk(rel_object_text, is_subject_or_object=True)
-            simplified_rel_verb = simplify_word(rel_verb_text)
+            conjugated_rel_verb = conjugate_verb(rel_verb_text, rel_subject_token)
             
-            sentence = f"{simplified_rel_subject.capitalize()} {simplified_rel_verb} {simplified_rel_object}."
+            sentence = f"{simplified_rel_subject.capitalize()} {conjugated_rel_verb} {simplified_rel_object}."
             simplified_sentences.append(sentence)
 
         main_clause_tokens = []
@@ -328,7 +380,7 @@ def simplify_sentence(text):
             s_token = effective_subjects_for_sentence_generation[0]
             subj_text = extract_chunk_span(s_token)
             simplified_s = simplify_chunk(subj_text, is_subject_or_object=True)
-            simplified_v = simplify_word(verb.lemma_)
+            conjugated_v = conjugate_verb(verb.lemma_, s_token)
             simplified_o = ""
             if effective_objects_for_sentence_generation:
                 o_token = effective_objects_for_sentence_generation[0]
@@ -337,11 +389,11 @@ def simplify_sentence(text):
 
             adverbs_str = " ".join([t.text for t in adverbial_modifiers])
             if adverbs_str:
-                simplified_v = f"{simplified_v} {adverbs_str}"
+                conjugated_v = f"{conjugated_v} {adverbs_str}"
 
             if negation_modifier:
                 affirmative_s = simplified_s.capitalize()
-                affirmative_v = simplified_v
+                affirmative_v = conjugated_v
                 if not simplified_o and verb and verb.pos_ != "AUX" and verb.dep_ != "ROOT":
                     affirmative_o = "something"
                 else:
@@ -353,7 +405,7 @@ def simplify_sentence(text):
                     
                 sentence = f"It is false that {affirmative_sentence_content.lower()}." 
             else:
-                sentence = f"{simplified_s.capitalize()} {simplified_v} {simplified_o}".strip()
+                sentence = f"{simplified_s.capitalize()} {conjugated_v} {simplified_o}".strip()
                 if not sentence.endswith("."):
                     sentence += "."
 
@@ -363,24 +415,24 @@ def simplify_sentence(text):
                 s_token = effective_subjects_for_sentence_generation[0]
                 subj_text = extract_chunk_span(s_token)
                 simplified_s = simplify_chunk(subj_text, is_subject_or_object=True)
-                simplified_v = simplify_word(verb.lemma_)
+                conjugated_v = conjugate_verb(verb.lemma_, s_token)
                 simplified_o = ""
 
                 adverbs_str = " ".join([t.text for t in adverbial_modifiers])
                 if adverbs_str:
-                    simplified_v = f"{simplified_v} {adverbs_str}"
+                    conjugated_v = f"{conjugated_v} {adverbs_str}"
                     simplified_o = "" 
                 
                 if negation_modifier:
                     affirmative_s = simplified_s.capitalize()
-                    affirmative_v = simplified_v
+                    affirmative_v = conjugated_v
                     
                     affirmative_sentence_content = f"{affirmative_s} {affirmative_v}".strip()
                     if affirmative_sentence_content.endswith("."):
                         affirmative_sentence_content = affirmative_sentence_content[:-1]
                     sentence = f"It is false that {affirmative_sentence_content.lower()}."
                 else:
-                    sentence = f"{simplified_s.capitalize()} {simplified_v} {simplified_o}".strip()
+                    sentence = f"{simplified_s.capitalize()} {conjugated_v} {simplified_o}".strip()
                     if not sentence.endswith("."):
                         sentence += "."
 
@@ -440,22 +492,28 @@ if __name__ == "__main__":
         "The cat was not sleeping.",
         "He has no money.", 
         "No one knows.",
-        "They never come back." 
+        "They never come back." ,
+        "He is happy.",
+        "They are sad.", 
+        "I have a book.", 
+        "She has a pen." 
     ]
     multiple_test_cases=[
         ["A boy or a girl saw a car.", "The boy was happy."],
         ["A man entered the house.", "The man had a key."],
         ["Two dogs barked.", "The dogs chased a cat."],
-        ["The dog did not bark.", "The cat was not sleeping."]
+        ["The dog did not bark.", "The cat was not sleeping."],
+        ["Three cats run.", "The cats are fast."],
+        ["All students learn.", "A student learns."]
     ]
     
-    print("Test con singole frasi")
+    print("Test singole frasi")
     for s in test_cases:
         introduced_entities_lemmas = set() 
         ace_sentence = simplify_sentence(s)
         print(f"Original: {s}\nACE: {ace_sentence}\n")
         
-    print("\n Test con frasi multiple")
+    print("Test frasi multiple")
     for s in multiple_test_cases:
         introduced_entities_lemmas= set()
         ace_document_sentence=process_document_for_ace(s)
