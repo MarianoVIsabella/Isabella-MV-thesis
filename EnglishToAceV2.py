@@ -496,7 +496,9 @@ if __name__ == "__main__":
         "He is happy.",
         "They are sad.", 
         "I have a book.", 
-        "She has a pen." 
+        "She has a pen." ,
+        "The detective interviewed the suspect who was seen near the crime scene.",
+        "After reviewing the footage, the officer concluded that the robbery took place at 2 AM."
     ]
     multiple_test_cases=[
         ["A boy or a girl saw a car.", "The boy was happy."],
