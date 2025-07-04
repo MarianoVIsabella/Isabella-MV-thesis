@@ -364,22 +364,68 @@ def simplify_sentence(text):
                     tokens_to_exclude_indices.add(rel_subject_token.i)
 
         for rel_subject_token, rel_verb_token in relcl_info:
-            rel_subject_text = extract_chunk_span(rel_subject_token)
-            rel_verb_text = rel_verb_token.lemma_
+            antecedent_text = extract_chunk_span(rel_subject_token)
+            simplified_antecedent = simplify_chunk(antecedent_text, is_subject_or_object=True)
             
-            rel_object_token = None
-            for child in rel_verb_token.children:
-                if child.dep_ in {"dobj", "attr", "pobj"} and child.pos_ in {"NOUN", "PROPN", "PRON", "ADJ"}:
-                    rel_object_token = child
-                    break
-            rel_object_text = extract_chunk_span(rel_object_token)
+            rel_clause_span = list(rel_verb_token.subtree)
+            rel_clause_doc = nlp(" ".join([t.text for t in rel_clause_span]))
+            active_subj, active_verb, active_obj_str, is_passive_conv = convert_passive_to_active_svo(rel_clause_doc)
             
-            simplified_rel_subject = simplify_chunk(rel_subject_text, is_subject_or_object=True)
-            simplified_rel_object = simplify_chunk(rel_object_text, is_subject_or_object=True)
-            conjugated_rel_verb = conjugate_verb(rel_verb_text, rel_subject_token)
+            if is_passive_conv:
+                # forzo Someone come soggetto se active_subj è None o "who"
+                if not active_subj or active_subj.lemma_.lower() in {"who", "which", "that"}:
+                    active_subj_text = "Someone"
+                else:
+                    active_subj_text = simplify_chunk(extract_chunk_span(active_subj), is_subject_or_object=True).capitalize()
+                
+                # includo modificatori preposizionali collegati al verbo
+                prepositional_phrases = []
+                for child in rel_verb_token.children:
+                    if child.dep_ in {"prep", "advmod", "npadvmod"}:
+                        prep_tokens = set()
+                        for t in child.subtree:
+                            prep_tokens.add(t)
+                        sorted_prep_tokens = sorted(list(prep_tokens), key=lambda t: t.i)
+                        prep_phrase = " ".join([t.text for t in sorted_prep_tokens]).strip()
+                        prepositional_phrases.append(simplify_chunk(prep_phrase))
+
+                
+                simplified_obj = simplified_antecedent
+                conjugated_verb = conjugate_verb(active_verb.lemma_, nlp(active_subj_text)[0])
+                
+                sentence_parts = [active_subj_text, conjugated_verb, simplified_obj]
+                if prepositional_phrases:
+                    sentence_parts.append(" ".join(prepositional_phrases))
+                
+                simplified_sentence = " ".join(sentence_parts).strip() + "."
+            else:
+                rel_object_token = None
+                for child in rel_verb_token.children:
+                    if child.dep_ in {"dobj", "attr", "pobj"} and child.pos_ in {"NOUN", "PROPN", "PRON", "ADJ"}:
+                        rel_object_token = child
+                        break
+                rel_object_text = extract_chunk_span(rel_object_token) if rel_object_token else ""
+                simplified_rel_object = simplify_chunk(rel_object_text, is_subject_or_object=True)
+                
+                prepositional_phrases = []
+                for child in rel_verb_token.children:
+                    if child.dep_ in {"prep", "advmod", "npadvmod"}:
+                        prep_tokens = set()
+                        for t in child.subtree:
+                            prep_tokens.add(t)
+                        sorted_prep_tokens = sorted(list(prep_tokens), key=lambda t: t.i)
+                        prep_phrase = " ".join([t.text for t in sorted_prep_tokens]).strip()
+                        prepositional_phrases.append(simplify_chunk(prep_phrase))
+
+                
+                conjugated_rel_verb = conjugate_verb(rel_verb_token.lemma_, rel_subject_token)
+                sentence_parts = [simplified_antecedent.capitalize(), conjugated_rel_verb, simplified_rel_object]
+                if prepositional_phrases:
+                    sentence_parts.append(" ".join(prepositional_phrases))
+                
+                simplified_sentence = " ".join(sentence_parts).strip() + "."
             
-            sentence = f"{simplified_rel_subject.capitalize()} {conjugated_rel_verb} {simplified_rel_object}."
-            simplified_sentences.append(sentence)
+            simplified_sentences.append(simplified_sentence)
 
         main_clause_tokens = []
         for token in clause_doc:
