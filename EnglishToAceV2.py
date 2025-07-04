@@ -125,7 +125,7 @@ def simplify_chunk(text, is_subject_or_object=False):
     
     if not is_subject_or_object or not nominal_heads:
         for t in doc:
-            if t.pos_ in {"NOUN", "VERB", "ADJ"}:
+            if t.pos_ in {"NOUN", "VERB", "ADJ", "PROPN"}:
                 simplified_parts.append(simplify_word(t.lemma_.lower()))
             elif t.pos_ in {"DET", "NUM"}:
                 if t.pos_ == "NUM" or t.dep_ == "nummod": 
@@ -262,7 +262,34 @@ def simplify_sentence(text):
     global introduced_entities_lemmas 
 
     original_doc = nlp(text) 
-    simplified_sentences = []
+    for token in original_doc:
+        if token.dep_ == "poss" and token.head and token.head.pos_ in {"NOUN", "PROPN"}:
+            possessor_token = token
+            possessed_token = token.head
+            
+            possessor_text = extract_chunk_span(possessor_token)
+            
+            # ottengo il chunk del posseduto senza il possessore
+            possessed_tokens_set = set()
+            possessed_tokens_set.add(possessed_token)
+            add_children_and_conj(possessed_token, possessed_tokens_set)
+            possessed_tokens_set.discard(possessor_token)
+            sorted_possessed_tokens = sorted(list(possessed_tokens_set), key=lambda t: t.i)
+            possessed_text = " ".join([t.text for t in sorted_possessed_tokens]).strip()
+            
+            simplified_possessor = simplify_chunk(possessor_text, is_subject_or_object=True).capitalize()
+            simplified_possessed = simplify_chunk(possessed_text, is_subject_or_object=True)
+            
+            # se non inizia già con un determinante, aggiungo "a" (ACE richiede un articolo)
+            possessed_doc = nlp(simplified_possessed)
+            first_token = possessed_doc[0] if possessed_doc else None
+            if first_token and first_token.pos_ != "DET":
+                simplified_possessed = f"a {simplified_possessed}"
+            
+            sentence = f"{simplified_possessor} has {simplified_possessed}."
+            return sentence
+
+    simplified_sentences=[]
     clauses = []
     
     #per prima cosa identifico se la frase può essere "scomposta" in più sotto-frasi
@@ -498,7 +525,8 @@ if __name__ == "__main__":
         "I have a book.", 
         "She has a pen." ,
         "The detective interviewed the suspect who was seen near the crime scene.",
-        "After reviewing the footage, the officer concluded that the robbery took place at 2 AM."
+        "After reviewing the footage, the officer concluded that the robbery took place at 2 AM.",
+        "Mary's book."
     ]
     multiple_test_cases=[
         ["A boy or a girl saw a car.", "The boy was happy."],
