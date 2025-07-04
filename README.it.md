@@ -3,7 +3,7 @@
 Questa è la repository per il framework "EnglishToAce" che ho sviluppato per la mia tesi triennale in informatica presso l'Unical.
 Nella repo ci sono diversi file:
 * Il file README.md, che contiene queste stesse informazioni sulla repo ma in inglese;
-* Questo file,README.it.md,che contiene informazioni sul repo (in italiano);
+* Questo file,README.it.md,che contiene informazioni sulla repo (in italiano);
 * Il file Citation.Cff che contiene le informazioni utili per citare questa repo(seguite le indicazioni lì contenute se volete farlo);
 * Infine, il file EnglishToAceV2.py, che contiene il codice che ho scritto.
   
