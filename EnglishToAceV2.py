@@ -42,6 +42,7 @@ def is_simple_word(word):
     depths = [s.min_depth() for s in synsets]
     avg_depth = sum(depths) / len(depths)
     min_depth_val = min(depths)
+    #questi parametri sono modificabili per rendere più o meno grande l'insieme delle parole riconosciute come "semplici" dal framework
     return min_depth_val <= 8 and avg_depth <= 9
 
 #funzione che riceve in input una parola e determina se questa parola è già idonea per ACE o meno
@@ -266,7 +267,6 @@ def conjugate_verb(verb_lemma, subject_token):
 
 #funzione che semplifica le frasi singole in input
 def simplify_sentence(text): 
-    global introduced_entities_lemmas 
 
     original_doc = nlp(text) 
     for token in original_doc:
