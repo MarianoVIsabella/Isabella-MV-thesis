@@ -21,7 +21,7 @@ The framework implements a couple of ACE rules, here mentioned:
 * Tracks the introduction of new objects, giving them the article "a" or "the" if the object was already introduced in the sentence.
 
 ## Which dependencies I need?
-Other than the standard library "re", which doesn't need anything on its own, the main dependencies are [spaCy](https://spacy.io/) and WordNet, available in [NLTK](https://www.nltk.org/)
+Other than the standard library "re", which doesn't need anything on its own, the main dependencies are [spaCy](https://spacy.io/) and WordNet, available in [NLTK](https://www.nltk.org/).
  
 ## What's the pipeline?
 
