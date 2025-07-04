@@ -14,7 +14,7 @@ Il framework implementa alcune regole di ACE, di seguito elencate:
 * Converte le frasi in frasi attive che rispettano la struttura SVO (Soggetto Verbo Oggetto).
 * Gestisce casi semplici di genitivo sassone.
 * Converte frasi dalla forma passiva a quella attiva.
-* Divide le proposizioni relative di una frase in più frasi ACE valie. 
+* Divide le proposizioni relative di una frase in più frasi ACE valide. 
 * Converte complementi oggetto introdotti da "that".
 * Grazie a WordNet, sostituisce le parole troppo specifiche con dei loro iperonimi più semplici.
 * Converte i plurali irregolari.
