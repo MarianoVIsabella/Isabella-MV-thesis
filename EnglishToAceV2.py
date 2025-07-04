@@ -1,5 +1,6 @@
 import spacy
 from nltk.corpus import wordnet as wn
+import re
 #carico il modello: non c'è un effettivo miglioramento dei risultati usando modelli più grandi, quindi si preferisce il più piccolo per ottimizzare.
 nlp = spacy.load("en_core_web_sm")
 
@@ -27,7 +28,8 @@ def get_hypernym(word):
     for syn in synsets:
         for h in syn.hypernyms():
             sim = syn.path_similarity(h)
-            if sim and sim > best_similarity and sim > 0.51:
+            #sotto i 0.5 troppo generico, ma sopra troppo specifico
+            if sim and sim > best_similarity and sim > 0.45:
                 best_hypernym = h.lemmas()[0].name().lower()
                 best_similarity = sim
     return best_hypernym
@@ -35,12 +37,17 @@ def get_hypernym(word):
 #euristica che stima se una parola è o meno semplice
 def is_simple_word(word):
     synsets = wn.synsets(word)
-    return len(synsets) == 1 and synsets[0].min_depth() < 5
+    if not synsets:
+        return False
+    depths = [s.min_depth() for s in synsets]
+    avg_depth = sum(depths) / len(depths)
+    min_depth_val = min(depths)
+    return min_depth_val <= 8 and avg_depth <= 9
 
 #funzione che riceve in input una parola e determina se questa parola è già idonea per ACE o meno
 def simplify_word(word):
     synsets = wn.synsets(word)
-    if not synsets:
+    if not synsets or is_simple_word(word):
         return word
     if word.lower() in irregular_plural_to_singular:
         return irregular_plural_to_singular[word.lower()]
@@ -426,6 +433,73 @@ def simplify_sentence(text):
                 simplified_sentence = " ".join(sentence_parts).strip() + "."
             
             simplified_sentences.append(simplified_sentence)
+        # gestione delle proposizioni oggettive (ccomp, xcomp) collegate al verbo principale
+        for token in clause_doc:
+            if token.dep_ in {"ccomp", "xcomp"} and token.head and token.head.pos_ == "VERB":
+                main_verb = token.head
+                main_subject = None
+                for child in main_verb.children:
+                    if child.dep_ == "nsubj":
+                        main_subject = child
+                        break
+                if not main_subject:
+                    main_subject = nlp("Someone")[0]
+                
+                simplified_main_subject = simplify_chunk(extract_chunk_span(main_subject), is_subject_or_object=True).capitalize()
+                conjugated_main_verb = conjugate_verb(main_verb.lemma_, main_subject)
+                
+                # processa la subordinata come frase secondaria
+                comp_subtree = list(token.subtree)
+                comp_text = " ".join([t.text for t in comp_subtree]).strip()
+                comp_doc = nlp(comp_text)
+                comp_subject, comp_verb, comp_obj, comp_adverbs, comp_neg, _ = extract_svo(comp_doc)
+                
+                if comp_subject and comp_verb:
+                    simplified_comp_subj = simplify_chunk(extract_chunk_span(comp_subject), is_subject_or_object=True)
+                    conjugated_comp_verb = conjugate_verb(comp_verb.lemma_, comp_subject)
+                    simplified_comp_obj = ""
+                    if comp_obj:
+                        simplified_comp_obj = simplify_chunk(extract_chunk_span(comp_obj), is_subject_or_object=True)
+                    
+                    adverbs_str = " ".join([t.text for t in comp_adverbs])
+                    if adverbs_str:
+                        conjugated_comp_verb = f"{conjugated_comp_verb} {adverbs_str}"
+                    
+                    prepositional_phrases = []
+                    for child in comp_verb.children:
+                        if child.dep_ in {"prep", "advmod", "npadvmod"}:
+                            prep_tokens = set(child.subtree)
+                            sorted_prep_tokens = sorted(list(prep_tokens), key=lambda t: t.i)
+                            prep_phrase = " ".join([t.text for t in sorted_prep_tokens]).strip()
+                             #implemento con regex perché spacy da solo non mi da abbastanza informazioni per convertire l'orario 
+                             #in formato valido per ACE
+                            time_match = re.search(r'\b(\d{1,2})(?::(\d{2}))?\s*(AM|PM|am|pm)\b', prep_phrase)
+                            if time_match:
+                                hour = int(time_match.group(1))
+                                minute = int(time_match.group(2)) if time_match.group(2) else 0
+                                ampm = time_match.group(3).lower()
+            
+                                if ampm == "pm" and hour != 12:
+                                    hour += 12
+                                elif ampm == "am" and hour == 12:
+                                    hour = 0
+            
+                                ace_time = f"{hour}:{minute:02d}"
+                                prep_phrase = f"at {ace_time}"
+                            prepositional_phrases.append(simplify_chunk(prep_phrase))
+                    
+                    comp_parts = [simplified_comp_subj, conjugated_comp_verb, simplified_comp_obj]
+                    if prepositional_phrases:
+                        comp_parts.append(" ".join(prepositional_phrases))
+                    
+                    simplified_comp_clause = " ".join([p for p in comp_parts if p]).strip()
+                else:
+                    simplified_comp_clause = "something occurs"
+                
+                simplified_sentence = f"{simplified_main_subject} {conjugated_main_verb} that {simplified_comp_clause}."
+                simplified_sentences.append(simplified_sentence)
+
+
 
         main_clause_tokens = []
         for token in clause_doc:
