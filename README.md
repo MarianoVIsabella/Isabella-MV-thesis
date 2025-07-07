@@ -5,6 +5,7 @@ Inside the repo there are several files:
 * This file, the README.md, which contains informations about the repo (in English); 
 * The README.it.md file, which contains the same informations about the repo but in Italian;
 * The file Citation.Cff which contains the informations useful to cite this repo (please follow it if you want to do so)
+* The file EnglishToAceDataset.csv, which is a small dataset I've built to test this framework.
 * Lastly, the file EnglishToAceV2.py, which is the code I've written.
 ## What does the framework do?
 
@@ -28,7 +29,6 @@ Other than the standard library "re", which doesn't need anything on its own, th
 In the Python file there are some comments (in Italian) which describes more precisely what does the code do, but essentially the pipeline is as follows:
 * _Parsing_ using spaCy in order to identify sentence structures, dependencies and named entities.
 * _Cause splitting_ in order to divide a complex sentences into simpler clauses.
-* _SVO Extraction_ in order to extract the subject, the verb and the object from each clause.
 * _Simplification_ using WordNet in order to replace complex words with simpler synonyms or hypernyms.
-* _Article Assignment_ in order to assign "a" or "the" to each noun phrase.
+* _SVO Extraction_ in order to extract the subject, the verb and the object from each clause.
 * _Sentence Generation_ in order to assemble the resulting ACE sentence(s).
