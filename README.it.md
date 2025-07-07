@@ -5,6 +5,7 @@ Nella repo ci sono diversi file:
 * Il file README.md, che contiene queste stesse informazioni sulla repo ma in inglese;
 * Questo file,README.it.md,che contiene informazioni sulla repo (in italiano);
 * Il file Citation.Cff che contiene le informazioni utili per citare questa repo(seguite le indicazioni lì contenute se volete farlo);
+* Il file EnglishToAceDataset.csv, che contiene un piccolo dataset costruito da me utilizzato per testare il framework;
 * Infine, il file EnglishToAceV2.py, che contiene il codice che ho scritto.
   
 ## Cosa fa il framework?
@@ -29,8 +30,7 @@ Oltre alla libreria "re", che non introduce nuove dipendenze da sola, le dipende
 Nel file Python ci sono dei commenti (in italiano) che descrivono più dettagliatamente cosa fa il codice, ma sostanzialmente ogni frase viene tradotta passando per queste fasi:
 * _Analisi_ usando spaCy per identificare le strutture interne della frase, le dipendenze e le entità nominate (nomi propri ecc...).
 * _Divisione in proposizioni_ per dividere una frase complessa in più proposizioni semplici.
-* _Estrazione SVO_ per estrarre soggetto, verbo e oggetto da ogni proposizione.
 * _Semplificazione_ usando WordNet per sostituire parole complesse con dei loro sinonimi o iperonimi più semplici.
-* _Assegnamento dell'Articolo_ per assegnare "a" o "the" a ogni frase nominale.
+* _Estrazione SVO_ per estrarre soggetto, verbo e oggetto da ogni proposizione.
 * _Generazione delle frasi_ per costruire la frase (o le frasi) ACE risultante/i.
 
