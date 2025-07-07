@@ -479,10 +479,8 @@ def simplify_sentence(text):
                                 minute = int(time_match.group(2)) if time_match.group(2) else 0
                                 ampm = time_match.group(3).lower()
             
-                                if ampm == "pm" and hour != 12:
-                                    hour += 12
-                                elif ampm == "am" and hour == 12:
-                                    hour = 0
+                                if ampm == "pm":
+                                    hour = (hour+ 12) % 24
             
                                 ace_time = f"{hour}:{minute:02d}"
                                 prep_phrase = f"at {ace_time}"
