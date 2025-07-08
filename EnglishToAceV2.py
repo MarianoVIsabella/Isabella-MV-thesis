@@ -646,4 +646,4 @@ if __name__ == "__main__":
                     ace_wrong_sentences+=1
             
     print (f"Le frasi valide per la logica ACE sono: {ace_valid_sentences}\n")
-    print (f"Le frasi errate per sono: {ace_wrong_sentences}")
+    print (f"Le frasi errate per ACE sono: {ace_wrong_sentences}")
