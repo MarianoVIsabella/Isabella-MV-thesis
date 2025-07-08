@@ -226,18 +226,12 @@ def conjugate_verb(verb_lemma, subject_token):
     
     elif subject_token.lemma_.lower() == "i":
         is_subject_plural_for_conjugation = True
-   
-    elif subject_token.lemma_.lower() == "someone":
-        is_subject_plural_for_conjugation = False
     
     subj_chunk_doc = nlp(extract_chunk_span(subject_token))
     for t in subj_chunk_doc:
         if t.dep_ == "nummod" and t.pos_ == "NUM" and t.lemma_ not in ["one", "a", "an"]:
             is_subject_plural_for_conjugation = True
             break
-    
-    if not is_subject_plural_for_conjugation and subject_token.lemma_.lower() not in ["we", "you", "they", "i", "someone"]:
-        is_subject_plural_for_conjugation = False
     
     #gestico il verbo be
     if verb_lemma.lower() == "be":
