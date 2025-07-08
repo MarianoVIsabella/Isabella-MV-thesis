@@ -10,7 +10,7 @@ Nella repo ci sono diversi file:
   
 ## Cosa fa il framework?
 
-Nel codice ci sono alcune frasi casuali per testarlo, sentitevi liberi di cambiarle perché non cambiano il comportamento del framework. <br> L'obiettivo era di creare un tool Python per tradurre frasi dall'inglese all'Attempto Controlled English (d'ora in poi, ACE). <br>
+Nel codice c'è anche un main di prova per testare il funzionamento del framework con le frasi del dataset. <br> L'obiettivo era di creare un tool Python per tradurre frasi dall'inglese all'Attempto Controlled English (d'ora in poi, ACE). <br>
 Il framework implementa alcune regole di ACE, di seguito elencate:
 * Converte le frasi in frasi attive che rispettano la struttura SVO (Soggetto Verbo Oggetto).
 * Gestisce casi semplici di genitivo sassone.

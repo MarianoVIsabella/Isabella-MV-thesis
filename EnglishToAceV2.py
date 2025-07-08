@@ -1,6 +1,24 @@
 import spacy
 from nltk.corpus import wordnet as wn
 import re
+import csv
+import requests
+
+APE_URL = "http://attempto.ifi.uzh.ch/ws/ape/apews.perl"
+
+def send_to_ape(ace_sentence):
+    payload = {
+        "text": ace_sentence
+    }
+    try:
+        response = requests.post(APE_URL, data=payload, timeout=10)
+        if response.status_code == 200:
+            return response.text.strip()
+        else:
+            return f"[APE ERROR {response.status_code}]"
+    except Exception as e:
+        return f"[EXCEPTION] {e}"
+
 #carico il modello: non c'è un effettivo miglioramento dei risultati usando modelli più grandi, quindi si preferisce il più piccolo per ottimizzare.
 nlp = spacy.load("en_core_web_sm")
 
@@ -608,56 +626,24 @@ def process_document_for_ace(sentences_list):
     return " ".join(final_document_sentences)
 
 if __name__ == "__main__":
-    test_cases = [
-        "The small brown dog chased the fast cat.",
-        "A bag was stolen by a man.",
-        "Some people might carry dangerous weapons.",
-        "Individuals possess firearms.",
-        "Any person had a gun.",
-        "The gun is red.",
-        "It was stolen.",
-        "A man who stole a bag ran away.",
-        "A man who stole a bag ran instantly.",
-        "The man and the woman carried the bag and the box.",
-        "The boy or the girl saw a car.",
-        "A man and a woman ate an apple or a pear.",
-        "A boy or a girl saw a car and the boy was happy.", 
-        "Two dogs ate three bones.", 
-        "Many birds sing.", 
-        "Each student learn.",
-        "Several people saw the car.",
-        "The dog did not bark.",
-        "People do not eat meat.",
-        "The cat was not sleeping.",
-        "He has no money.", 
-        "No one knows.",
-        "They never come back." ,
-        "He is happy.",
-        "They are sad.", 
-        "I have a book.", 
-        "She has a pen." ,
-        "The detective interviewed the suspect who was seen near the crime scene.",
-        "After reviewing the footage, the officer concluded that the robbery took place at 2 AM.",
-        "Mary's book."
-    ]
-    multiple_test_cases=[
-        ["A boy or a girl saw a car.", "The boy was happy."],
-        ["A man entered the house.", "The man had a key."],
-        ["Two dogs barked.", "The dogs chased a cat."],
-        ["The dog did not bark.", "The cat was not sleeping."],
-        ["Three cats run.", "The cats are fast."],
-        ["All students learn.", "A student learns."]
-    ]
-    
-    print("Test singole frasi")
-    for s in test_cases:
-        introduced_entities_lemmas = set() 
-        ace_sentence = simplify_sentence(s)
-        print(f"Original: {s}\nACE: {ace_sentence}\n")
-        
-    print("Test frasi multiple")
-    for s in multiple_test_cases:
-        introduced_entities_lemmas= set()
-        ace_document_sentence=process_document_for_ace(s)
-        print(f"Original: {' '.join(s)}\nACE: {ace_document_sentence}\n")
-        
+    ace_valid_sentences=0
+    ace_wrong_sentences=0
+    with open("EnglishToACeDataset.csv", newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)
+        for row in reader:
+            introduced_entities_lemmas = set() 
+            ace_sentence = simplify_sentence(row[0])
+            if row[3] == ace_sentence:
+                ace_valid_sentences+=1
+                print(f"Original: {row[0]}\nACE: {ace_sentence}\n")
+            else:
+                ape_response = send_to_ape(ace_sentence)
+                if "error" not in ape_response:
+                    ace_valid_sentences+=1
+                    print(f"Original: {row[0]}\nACE: {ace_sentence}\n")
+                else:
+                    ace_wrong_sentences+=1
+            
+    print (f"Le frasi valide per la logica ACE sono: {ace_valid_sentences}\n")
+    print (f"Le frasi errate per sono: {ace_wrong_sentences}")

@@ -9,7 +9,7 @@ Inside the repo there are several files:
 * Lastly, the file EnglishToAceV2.py, which is the code I've written.
 ## What does the framework do?
 
-In the code inside the repo there are a couple of random sentences to test it, feel free to change them because they don't really matter in the workflow of the framework.<br>The goal of the project was to create a Python tool to convert standard English sentences in Attempto Controlled English(from now on, ACE) sentences. <br>
+In the code inside the repo there is also the code to test it with the EnglishToAceDataset.<br>The goal of the project was to create a Python tool to convert standard English sentences in Attempto Controlled English(from now on, ACE) sentences. <br>
 The framework implements a couple of ACE rules, here mentioned:
 * Converts sentences in active sentences which respect the Subject Verb Object structure.
 * Handles simple cases of saxon genitive.
