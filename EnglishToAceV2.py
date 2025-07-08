@@ -281,6 +281,7 @@ def conjugate_verb(verb_lemma, subject_token):
 def simplify_sentence(text): 
 
     original_doc = nlp(text) 
+
     for token in original_doc:
         if token.dep_ == "poss" and token.head and token.head.pos_ in {"NOUN", "PROPN"}:
             possessor_token = token
@@ -546,7 +547,7 @@ def simplify_sentence(text):
 
             adverbs_str = " ".join([t.text for t in adverbial_modifiers])
             if adverbs_str:
-                conjugated_v = f"{conjugated_v} {adverbs_str}"
+                conjugated_v = f"{adverbs_str} {conjugated_v}"
 
             if negation_modifier:
                 affirmative_s = simplified_s.capitalize()
@@ -636,7 +637,7 @@ if __name__ == "__main__":
             ace_sentence = simplify_sentence(row[0])
             if row[3] == ace_sentence:
                 ace_valid_sentences+=1
-                print(f"Original: {row[0]}\nACE: {ace_sentence}\n")
+                print(f"Original: {row[0]}\nACE: {ace_sentence}\n")    
             else:
                 ape_response = send_to_ape(ace_sentence)
                 if "error" not in ape_response:
