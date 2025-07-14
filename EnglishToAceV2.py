@@ -637,7 +637,7 @@ if __name__ == "__main__":
             ace_sentence = simplify_sentence(row[0])
             if row[3] == ace_sentence:
                 ace_valid_sentences+=1
-                print(f"Original: {row[0]}\nACE: {ace_sentence}\n")    
+                #print(f"Original: {row[0]}\nACE: {ace_sentence}\n")    
             else:
                 ape_response = send_to_ape(ace_sentence)
                 if "error" not in ape_response:
@@ -645,6 +645,7 @@ if __name__ == "__main__":
                     print(f"Original: {row[0]}\nACE: {ace_sentence}\n")
                 else:
                     ace_wrong_sentences+=1
+                    # print(f"Original: {row[0]}\nACE: {ace_sentence}\n")
             
     print (f"Le frasi valide per la logica ACE sono: {ace_valid_sentences}\n")
     print (f"Le frasi errate per ACE sono: {ace_wrong_sentences}")
